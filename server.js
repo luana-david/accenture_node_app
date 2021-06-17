@@ -30,7 +30,7 @@
 const { json, urlencoded } = require("body-parser");
 const express = require("express");
 const app = express();
-const joi = require("joi");
+const Joi = require("joi");
 
 app.use(json());
 app.use(urlencoded());
@@ -90,10 +90,36 @@ app.get("/api/todos/:id", (req, res) => {
 });
 
 app.post("/api/todos", (req, res) => {
-  const data = req.body;
-  todos.push(data);
-  console.log(data);
-  res.status(201).send(data);
+  try {
+    const schema = Joi.object({
+      todoText: Joi.string().min(3).required(),
+      isDone: Joi.boolean(),
+    });
+
+    const data = { ...req.body };
+
+    const { error } = schema.validate(data);
+
+    if (error) {
+      return res.status(401).send(error.details);
+    }
+
+    if (!data.isDone) {
+      data.isDone = false;
+    }
+
+    console.log(data, !data.isDone);
+    const todo = {
+      ...data,
+      id: todos.length + 1,
+    };
+
+    todos.push(todo);
+    res.status(201).send(todo);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ message: "something went wrong" });
+  }
 });
 
 app.put("/api/todos/:id", (req, res) => {
