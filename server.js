@@ -138,6 +138,22 @@ app.put("/api/todos/:id", (req, res) => {
   }
 });
 
+app.delete("/api/todos/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = todos.findIndex((todo) => todo.id === +id);
+    const deletedTodo = todos[index];
+    if (index !== -1) {
+      todos.splice(index, 1);
+    } else {
+      res.send(400).send({ message: "id does not exist" });
+    }
+    res.status(200).send(deletedTodo);
+  } catch (error) {
+    res.status(500).send({ message: "an error occured" });
+  }
+});
+
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
