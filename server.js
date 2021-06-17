@@ -2,7 +2,10 @@ const express = require("express");
 const app = express();
 const Joi = require("joi");
 
-app.use(express.json());
+const { json, urlencoded } = require("body-parser");
+
+app.use(json());
+app.use(urlencoded());
 
 const todos = [
   {
@@ -74,19 +77,33 @@ app.post("/api/todos", function (req, res) {
 });
 
 app.put("/api/todos/:id", function (req, res) {
-  const index = todos.findIndex((x) => x.id === Number(req.params.id));
-  if (index === -1)
-    return res.status(404).send({ message: "record not found" });
+  try {
+    const schema = Joi.object({
+      todoText: Joi.string().min(3).required(),
+      isDone: Joi.boolean(),
+    });
+    const { error } = schema.validate(req.body);
 
-  // TODO: use splice for update record as well
-  todos.splice(index, 1);
-  const updatedTodo = {
-    ...req.body,
-    id: req.params.id,
-  };
-  todos.push(updatedTodo);
+    if (error) {
+      res.status(401).send({ message: error.details });
+    }
+    const index = todos.findIndex((x) => x.id === Number(req.params.id));
+    console.log(req.params.id);
+    if (index === -1)
+      return res.status(404).send({ message: "record not found" });
 
-  return res.status(201).send(updatedTodo);
+    // TODO: use splice for update record as well
+    todos.splice(index, 1);
+    const updatedTodo = {
+      ...req.body,
+      id: +req.params.id,
+    };
+    todos.push(updatedTodo);
+
+    return res.status(201).send(updatedTodo);
+  } catch (error) {
+    res.status(500).send({ message: "some error occured" });
+  }
 });
 
 app.delete("/api/todos/:id", function (req, res) {
