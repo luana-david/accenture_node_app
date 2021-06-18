@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 
+const wait = (time) =>
+  new Promise((resolve, reject) => setTimeout(() => resolve, time));
+
 mongoose
   .connect("mongodb://localhost/playground", {
     useNewUrlParser: true,
@@ -14,21 +17,34 @@ const courseSchema = new mongoose.Schema({
     required: true,
     minlength: 3,
     maxlength: 100,
+    trim: true,
     // match: /pattern/
   },
   author: { type: String },
-  tags: [String],
+  tags: {
+    type: Array,
+    validate: {
+      validator: function (data) {
+        return true;
+      },
+      message: "at least 1 tag is required",
+    },
+  },
   date: { type: Date, default: Date.now },
   isPublished: Boolean,
   category: {
     type: String,
     enum: ["tech", "fiction", "scifi"],
+    // uppercase: true
+    lowercase: true,
   },
   price: {
     type: Number,
     required: function () {
       return this.isPublished;
     },
+    get: (v) => Math.round(v),
+    set: (v) => Math.round(v),
   },
 });
 
@@ -38,12 +54,12 @@ const Course = mongoose.model("Course", courseSchema);
 async function CreateCourse() {
   try {
     const course = new Course({
-      name: "React.js Training",
+      name: " React.js Training     ",
       author: "Rohit",
-      tags: ["react", "backedn"],
+      tags: ["react"],
       isPublished: true,
-      category: "tech",
-      price: 80,
+      category: "TECH",
+      price: 80.8,
     });
     await course.validate();
     const result = await course.save();
