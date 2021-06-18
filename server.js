@@ -1,15 +1,26 @@
 const express = require("express");
-const morgan = require('morgan')
+const morgan = require('morgan');
+const config = require('config');
 const app = express();
 const logger = require('./logger')
 const Joi = require("joi");
 
+const dbConfig = config.get('Customer.dbConfig');
+const password = config.get('mail.password');
+console.log(dbConfig);
+console.log(password);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(logger)
+console.log(process.env.NODE_ENV);
+console.log(app.get('env'));
 
-app.use(morgan('tiny'))
+
+if(app.get('env') === 'development') {
+    app.use(logger)
+    app.use(morgan('tiny'))
+}
 
 app.use(function(req, res, next) {
     console.log('authenticate....');
