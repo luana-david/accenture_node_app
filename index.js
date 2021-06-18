@@ -1,3 +1,12 @@
+// Create Database Movies
+
+// create table Genres
+
+// name => required, min: 2, max: 50, lowercase,
+// subGenre => array, min: 1, it will not duplicate record
+
+// get records
+
 const mongoose = require("mongoose");
 
 const wait = (time) =>
