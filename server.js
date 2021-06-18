@@ -1,8 +1,21 @@
 const express = require("express");
+const morgan = require('morgan')
 const app = express();
+const logger = require('./logger')
 const Joi = require("joi");
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(logger)
+
+app.use(morgan('tiny'))
+
+app.use(function(req, res, next) {
+    console.log('authenticate....');
+    next();
+})
+
 
 const todos = [
   {
@@ -18,6 +31,7 @@ const todos = [
 ];
 
 app.get("/api/todos", function (req, res) {
+    console.log('get method...');
   const id = req.query.id;
   const todoText = req.query.todoText;
   let response = todos;
@@ -52,11 +66,13 @@ app.post("/api/todos", function (req, res) {
       isDone: Joi.boolean(),
     });
 
-    const { error } = schema.validate(req.body);
+    const {  error } = schema.validate(req.body);
 
     if (error) {
       return res.status(401).send(error.details);
     }
+    const data = req.body;
+
     if (!data.isDone) {
       data.isDone = false;
     }
