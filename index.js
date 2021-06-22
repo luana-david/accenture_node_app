@@ -12,6 +12,7 @@ const mongoose = require("mongoose");
 const wait = (time) =>
   new Promise((resolve, reject) => setTimeout(() => resolve, time));
 
+// old javascript way to handle promise
 mongoose
   .connect("mongodb://localhost/playground", {
     useNewUrlParser: true,
@@ -20,6 +21,12 @@ mongoose
   .then(() => console.log("mongodb is connected"))
   .catch((err) => console.error("could not connect to Mongodb", err));
 
+
+// NOSQL => its not traditional table/ json
+// RDBMS
+
+// define structure of the table
+// add validation
 const courseSchema = new mongoose.Schema({
   name: {
     type: String,

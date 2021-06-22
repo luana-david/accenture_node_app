@@ -6,6 +6,22 @@ const dbDebugger = require("debug")("app:db");
 const app = express();
 const logger = require("./logger");
 const Joi = require("joi");
+const mongoose = require("mongoose");
+
+// new javascript
+const connect = async () => {
+  try {
+    await mongoose.connect("mongodb://localhost/playground", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("mongodb is connected");
+  } catch (error) {
+    console.error("could not connect to Mongodb", err);
+  }
+};
+
+connect();
 
 app.set("view engine", "pug");
 app.set("views", "./views");
@@ -47,6 +63,46 @@ const todos = [
     isDone: false,
   },
 ];
+
+const courseSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    minlength: 3,
+    maxlength: 100,
+    trim: true,
+    // match: /pattern/
+  },
+  author: { type: String },
+  tags: {
+    type: Array,
+    validate: {
+      validator: function (data) {
+        return true;
+      },
+      message: "at least 1 tag is required",
+    },
+  },
+  date: { type: Date, default: Date.now },
+  isPublished: Boolean,
+  category: {
+    type: String,
+    enum: ["tech", "fiction", "scifi"],
+    // uppercase: true
+    lowercase: true,
+  },
+  price: {
+    type: Number,
+    required: function () {
+      return this.isPublished;
+    },
+    get: (v) => Math.round(v),
+    set: (v) => Math.round(v),
+  },
+});
+
+// Created Class
+const Course = mongoose.model("Course", courseSchema);
 
 app.get("/", function (req, res) {
   // database
@@ -138,6 +194,35 @@ app.delete("/api/todos/:id", function (req, res) {
   todos.splice(index, 1);
 
   return res.status(201).send(deletedTodo);
+});
+
+app.get("/api/courses", async (req, res) => {
+  try {
+    let query = {};
+    const author = req.query.author;
+    if (author) query.author = new RegExp(`.*${author}.*`, "i");
+    const tags = req.query.tags?.split(",");
+    if (tags) query.tags = { $in: tags };
+    
+    const courses = await Course.find(query);
+    res.status(200).send(courses);
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+});
+
+app.get("/api/courses/:id", async (req, res) => {
+  try {
+    const course = await Course.findOne({ _id: req.params.id });
+    res.status(200).send(course);
+  } catch (error) {
+    console.log(JSON.stringify(error));
+    if (error.path === "_id") {
+      res.status(400).send({ message: "Please Provide correct ID" });
+    } else {
+      res.status(500).send({ message: error.message });
+    }
+  }
 });
 
 // app.get("/api/todos/:year/:month", function (req, res) {
