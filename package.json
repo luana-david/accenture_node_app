@@ -1,0 +1,21 @@
+{
+  "name": "accenture_node_app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/imyagnesh/accenture_node_app.git",
+  "author": "Mitanshu Patel <mitanshu.u.patel@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "config": "^3.3.6",
+    "debug": "^4.3.1",
+    "express": "^4.17.1",
+    "joi": "^17.4.0",
+    "mongoose": "^5.12.14",
+    "morgan": "^1.10.0",
+    "pug": "^3.0.2",
+    "yam_test_upload": "^1.1.0"
+  }
+}
