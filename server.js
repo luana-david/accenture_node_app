@@ -11,6 +11,11 @@ const connect = require("./connect");
 const Course = require("./model/courses");
 const Author = require("./model/authors");
 
+// Task 23.06
+
+const Movie = require("./model/movies");
+const { genreModel: Genre } = require("./model/genres");
+
 connect();
 
 app.set("view engine", "pug");
@@ -280,6 +285,28 @@ app.get("/api/courses/:id", async (req, res) => {
 //   // }
 //   res.send(req.params);
 // });
+
+//
+//
+//
+
+// Task 23.06
+
+app.post("/api/movies", async (req, res) => {
+  try {
+    const { genres, ...movieData } = req.body;
+    const movie = new Movie(movieData);
+    for (let i = 0; i < genres.length; i++) {
+      movie.genres.push(new Genre(genres[i]));
+    }
+    console.log(movie);
+    await movie.validate();
+    const newMovie = await movie.save();
+    res.status(201).send(newMovie);
+  } catch (error) {
+    res.status(500).send({ message: error });
+  }
+});
 
 var port = process.env.PORT || 3000;
 
