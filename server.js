@@ -6,6 +6,13 @@ const dbDebugger = require("debug")("app:db");
 const app = express();
 const logger = require("./logger");
 const Joi = require("joi");
+const Course = require("./model/courses");
+const connect = require("./connect");
+const Author = require("./model/authors");
+
+const Fawn = require("fawn");
+
+const mongoose = require("mongoose");
 
 app.set("view engine", "pug");
 app.set("views", "./views");
@@ -15,7 +22,7 @@ const password = config.get("mail.password");
 console.log(dbConfig);
 console.log(password);
 
-app.use(express.json());
+app.use(express.json({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
@@ -27,6 +34,27 @@ if (app.get("env") === "development") {
   app.use(morgan("tiny"));
   startupDebugger("morgan started");
 }
+
+connect();
+
+Fawn.init(mongoose);
+
+const errorRes = (error) => {
+  const newError = {};
+  for (const key in error) {
+    console.log(key);
+    newError[key] = {
+      message: error[key].message,
+    };
+    if (error[key].properties.type === "enum") {
+      newError[key] = {
+        ...newError[key],
+        validValues: error[key].properties.enumValues,
+      };
+    }
+  }
+  return newError;
+};
 
 app.use(function (req, res, next) {
   console.log("authenticate....");
@@ -147,6 +175,101 @@ app.delete("/api/todos/:id", function (req, res) {
 //   // }
 //   res.send(req.params);
 // });
+
+app.get("/api/courses", async (req, res) => {
+  try {
+    const author = req.query.author;
+    const tags = req.query.tags?.split(",");
+    let query = {};
+    if (author) {
+      query["author.name"] = new RegExp(`.*${author}.*`, "i");
+    }
+    if (tags) {
+      query.tags = { $in: tags };
+    }
+    const courses = await Course.find({ ...query });
+    courses.length !== 0
+      ? res.status(200).send(courses)
+      : res.status(400).send({ message: "no courses found" });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+});
+
+app.get("/api/courses/:id", async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    console.log(course);
+    res.status(200).send(course);
+  } catch (error) {
+    if (error.path === "_id") {
+      res.status(404).send({ message: "id not matching" });
+    } else {
+      res.status(500).send({ message: error });
+    }
+  }
+});
+
+app.post("/api/courses", async (req, res) => {
+  try {
+    const { author, ...data } = req.body;
+    const authorPost = new Author(author);
+    const course = new Course(data);
+    await Fawn.Task().save("Author", authorPost).save("Course", course).run();
+
+    // await authorPost.validate();
+    // const aut = await authorPost.save();
+
+    // const { error } = courseValidSch.validate();
+    // if (error) {
+    //   throw mongoose.Error("");
+    // }
+
+    // for (let i = 0; i < author.length; i++) {
+    //   course.author.push(new Author(author[i]));
+    // }
+    // await course.validate();
+    // const resp = await course.save();
+    res.status(201).send({ succes: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ err: errorRes(error.errors) });
+  }
+});
+
+app.put("/api/courses/:id", async (req, res) => {
+  try {
+    const data = req.body;
+    const { id } = req.params;
+    const course = await Course.findOne({ _id: id });
+    course.author.name = req.body.author.name;
+    await course.save();
+    // const updated = await Course.updateOne(
+    //   { _id: id },
+    //   {
+    //     $set: data,
+    //   },
+    //   { runValidators: true }
+    // );
+    console.log(course);
+    res.status(201).send(course);
+  } catch (error) {
+    res.status(500).send({ message: error });
+  }
+});
+
+app.delete("/api/courses/:courseId/:authorId", async (req, res) => {
+  try {
+    const { courseId, authorId } = req.params;
+    const course = await Course.findOne({ _id: courseId });
+    const author = course.author.id(authorId);
+    await author.remove();
+    await course.save();
+    res.status(202).send(course);
+  } catch (error) {
+    res.status(500).send({ message: error });
+  }
+});
 
 var port = process.env.PORT || 3000;
 

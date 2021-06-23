@@ -1,5 +1,4 @@
 {
-  // Customer module configs
   "Customer": {
     "dbConfig": {
       "host": "localhost",
@@ -8,11 +7,11 @@
     },
     "credit": {
       "initialLimit": 100,
-      // Set low for development
+
       "initialDays": 1
     }
   },
   "mail": {
-        "password": "app_password"
-    }
+    "password": "app_password"
+  }
 }
