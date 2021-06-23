@@ -4,8 +4,8 @@ const { genreSchema } = require("./genres");
 const moviesSchema = new mongoose.Schema({
   name: {
     type: String,
-    genres: [genreSchema],
   },
+  genres: [genreSchema],
 });
 
 const Movie = mongoose.model("Movie", moviesSchema);
