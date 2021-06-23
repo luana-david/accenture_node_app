@@ -21,7 +21,6 @@ mongoose
   .then(() => console.log("mongodb is connected"))
   .catch((err) => console.error("could not connect to Mongodb", err));
 
-
 // NOSQL => its not traditional table/ json
 // RDBMS
 
@@ -81,6 +80,7 @@ async function CreateCourse() {
     const result = await course.save();
     console.log(result);
   } catch (error) {
+    console.log(error);
     console.log(error);
   }
 }

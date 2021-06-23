@@ -7,19 +7,9 @@ const app = express();
 const logger = require("./logger");
 const Joi = require("joi");
 const mongoose = require("mongoose");
-
-// new javascript
-const connect = async () => {
-  try {
-    await mongoose.connect("mongodb://localhost/playground", {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("mongodb is connected");
-  } catch (error) {
-    console.error("could not connect to Mongodb", err);
-  }
-};
+const connect = require("./connect");
+const Course = require("./model/courses");
+const Author = require("./model/authors");
 
 connect();
 
@@ -64,49 +54,85 @@ const todos = [
   },
 ];
 
-const courseSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    minlength: 3,
-    maxlength: 100,
-    trim: true,
-    // match: /pattern/
-  },
-  author: { type: String },
-  tags: {
-    type: Array,
-    validate: {
-      validator: function (data) {
-        return true;
-      },
-      message: "at least 1 tag is required",
-    },
-  },
-  date: { type: Date, default: Date.now },
-  isPublished: Boolean,
-  category: {
-    type: String,
-    enum: ["tech", "fiction", "scifi"],
-    // uppercase: true
-    lowercase: true,
-  },
-  price: {
-    type: Number,
-    required: function () {
-      return this.isPublished;
-    },
-    get: (v) => Math.round(v),
-    set: (v) => Math.round(v),
-  },
-});
-
-// Created Class
-const Course = mongoose.model("Course", courseSchema);
-
 app.get("/", function (req, res) {
   // database
   res.render("index", { pageTitle: "Node.js Training", youAreUsingPug: true });
+});
+
+const errRes = (errors) => {
+  const newErrors = {};
+  for (const err in errors) {
+    newErrors[err] = errors[err].message;
+    if (errors[err].properties.type === "enum") {
+      newErrors[err] = {
+        message: errors[err].message,
+        validValues: errors[err].properties.enumValues,
+      };
+    } else {
+      newErrors[err] = errors[err].message;
+    }
+  }
+  return newErrors;
+};
+
+const courseValidationSchema = Joi.object({
+  name: Joi.string().alphanum().min(3).max(30).required(),
+});
+
+// app.get("/api/courses", async (req, res) => {
+//   try {
+//     const courses = await Course.find();
+//     res.status(200).send(courses);
+//   } catch (error) {
+//     res.status(500).send({ message: error.message });
+//   }
+// });
+
+app.post("/api/courses", async (req, res) => {
+  try {
+    const { author: authorData, ...courseData } = req.body;
+    const author = new Author(authorData);
+    await author.validate();
+    await author.save();
+
+    const course = new Course({ ...courseData, author: author._id });
+    await course.validate();
+    await course.save();
+    res.status(201).send(course);
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      res.status(400).send({
+        message: "attached filed has wrong data",
+        data: errRes(error.errors),
+      });
+    } else {
+      res.status(500).send({ message: error.message });
+    }
+  }
+});
+
+app.put("/api/courses/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedCourse = await Course.updateOne(
+      { _id: id },
+      {
+        $set: req.body,
+      },
+      { runValidators: true }
+    );
+    res.status(201).send(updatedCourse);
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      res.status(400).send({
+        message: "attached filed has wrong data",
+        data: errRes(error.errors),
+      });
+    } else {
+      res.status(500).send({ message: error.message });
+    }
+  }
 });
 
 app.get("/api/todos", function (req, res) {
@@ -203,8 +229,8 @@ app.get("/api/courses", async (req, res) => {
     if (author) query.author = new RegExp(`.*${author}.*`, "i");
     const tags = req.query.tags?.split(",");
     if (tags) query.tags = { $in: tags };
-    
-    const courses = await Course.find(query);
+
+    const courses = await Course.find(query).populate("author", "name -_id");
     res.status(200).send(courses);
   } catch (error) {
     res.status(500).send({ message: error.message });
