@@ -90,12 +90,16 @@ const courseValidationSchema = Joi.object({
 
 app.post("/api/courses", async (req, res) => {
   try {
-    const { author: authorData, ...courseData } = req.body;
-    const author = new Author(authorData);
-    await author.validate();
-    await author.save();
+    const { authors: authorsData, ...courseData } = req.body;
+    // await author.validate();
+    // await author.save();
 
-    const course = new Course({ ...courseData, author: author._id });
+    const course = new Course(courseData);
+    for (let i = 0; i < authorsData.length; i++) {
+      const element = authorsData[i];
+      course.authors.push(new Author(element));
+    }
+
     await course.validate();
     await course.save();
     res.status(201).send(course);
@@ -111,18 +115,36 @@ app.post("/api/courses", async (req, res) => {
   }
 });
 
+app.delete("/api/courses/:courseId/:authorId", async (req, res) => {
+  try {
+    const { courseId, authorId } = req.params;
+    const course = await Course.findOne({ _id: courseId });
+    const author = course.authors.id(authorId);
+    author.remove();
+    await course.save();
+    res.status(202).send(course);
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+});
+
 app.put("/api/courses/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const course = await Course.findOne({ _id: id });
+    course.author.name = req.body.author.name;
+    // course.name = req.body.name;
 
-    const updatedCourse = await Course.updateOne(
-      { _id: id },
-      {
-        $set: req.body,
-      },
-      { runValidators: true }
-    );
-    res.status(201).send(updatedCourse);
+    await course.save();
+
+    // const updatedCourse = await Course.updateOne(
+    //   { _id: id },
+    //   {
+    //     $set: req.body,
+    //   },
+    //   { runValidators: true }
+    // );
+    res.status(201).send(course);
   } catch (error) {
     if (error.name === "ValidationError") {
       res.status(400).send({
@@ -224,13 +246,13 @@ app.delete("/api/todos/:id", function (req, res) {
 
 app.get("/api/courses", async (req, res) => {
   try {
-    let query = {};
     const author = req.query.author;
-    if (author) query.author = new RegExp(`.*${author}.*`, "i");
+    const query = {};
+    if (author) query["author.name"] = new RegExp(`.*${author}.*`, "i");
     const tags = req.query.tags?.split(",");
     if (tags) query.tags = { $in: tags };
 
-    const courses = await Course.find(query).populate("author", "name -_id");
+    const courses = await Course.find(query);
     res.status(200).send(courses);
   } catch (error) {
     res.status(500).send({ message: error.message });

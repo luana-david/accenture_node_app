@@ -1,6 +1,19 @@
 const mongoose = require("mongoose");
 const Joi = require("joi");
 
+const authorSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, "Name is required."],
+  },
+  bio: {
+    type: String,
+  },
+  website: {
+    type: String,
+  },
+});
+
 const courseSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -10,7 +23,7 @@ const courseSchema = new mongoose.Schema({
     trim: true,
     // match: /pattern/
   },
-  author: { type: mongoose.Schema.Types.ObjectId, ref: "Author" },
+  authors: [authorSchema],
   tags: {
     type: Array,
     validate: {
