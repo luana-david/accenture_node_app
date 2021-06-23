@@ -15,6 +15,7 @@ const Author = require("./model/authors");
 
 const Movie = require("./model/movies");
 const { genreModel: Genre } = require("./model/genres");
+const { query } = require("express");
 
 connect();
 
@@ -305,6 +306,19 @@ app.post("/api/movies", async (req, res) => {
     res.status(201).send(newMovie);
   } catch (error) {
     res.status(500).send({ message: error });
+  }
+});
+
+app.get("/api/movies", async (req, res) => {
+  try {
+    const querys = {};
+    const { movie, genre } = req.query;
+    if (movie) querys.name = new RegExp(`.*${movie}.*`, "i");
+    if (genre) querys["genres.name"] = genre;
+    const movies = await Movie.find({ ...querys });
+    res.status(200).send(movies);
+  } catch (error) {
+    res.status(500).send({ message: "server error" });
   }
 });
 
