@@ -16,6 +16,7 @@ const Author = require("./model/authors");
 const Movie = require("./model/movies");
 const { genreModel: Genre } = require("./model/genres");
 const { query } = require("express");
+const { awaitExpression } = require("@babel/types");
 
 connect();
 
@@ -295,11 +296,7 @@ app.get("/api/courses/:id", async (req, res) => {
 
 app.post("/api/movies", async (req, res) => {
   try {
-    const { genres, ...movieData } = req.body;
-    const movie = new Movie(movieData);
-    for (let i = 0; i < genres.length; i++) {
-      movie.genres.push(new Genre(genres[i]));
-    }
+    const movie = new Movie(req.body);
     console.log(movie);
     await movie.validate();
     const newMovie = await movie.save();
@@ -314,10 +311,26 @@ app.get("/api/movies", async (req, res) => {
     const querys = {};
     const { movie, genre } = req.query;
     if (movie) querys.name = new RegExp(`.*${movie}.*`, "i");
-    if (genre) querys["genres.name"] = genre;
+    if (genre) querys["genre.name"] = new RegExp(`.*${genre}.*`, "i");
     const movies = await Movie.find({ ...querys });
     res.status(200).send(movies);
   } catch (error) {
+    res.status(500).send({ message: "server error" });
+  }
+});
+
+app.put("/api/movies/:movieId", async (req, res) => {
+  try {
+    const updated = await Movie.updateOne(
+      {
+        _id: req.params.movieId,
+      },
+      { $set: req.body },
+      { runValidators: true }
+    );
+    res.status(201).send(updated);
+  } catch (error) {
+    console.log(error);
     res.status(500).send({ message: "server error" });
   }
 });
