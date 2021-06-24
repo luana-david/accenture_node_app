@@ -335,6 +335,15 @@ app.put("/api/movies/:movieId", async (req, res) => {
   }
 });
 
+app.delete("/api/movies/:movieId", async (req, res) => {
+  try {
+    const deleted = await Movie.deleteOne({ _id: req.params.movieId });
+    res.status(200).send(deleted);
+  } catch (error) {
+    res.status(500).send({ message: "server error" });
+  }
+});
+
 var port = process.env.PORT || 3000;
 
 app.listen(port, () => {
