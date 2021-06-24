@@ -5,7 +5,7 @@ const moviesSchema = new mongoose.Schema({
   name: {
     type: String,
   },
-  genres: [genreSchema],
+  genre: genreSchema,
 });
 
 const Movie = mongoose.model("Movie", moviesSchema);
